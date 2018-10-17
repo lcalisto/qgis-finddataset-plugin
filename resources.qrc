@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/find_dataset" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
