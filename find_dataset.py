@@ -23,7 +23,7 @@
 """
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QFileDialog
 # Initialize Qt resources from file resources.py
 from .resources import *
 
@@ -31,8 +31,9 @@ from .resources import *
 from .find_dataset_dockwidget import FindDatasetDockWidget
 import os.path
 
+from .GetMapCoordinates import GetMapCoordinates
 
-class FindDataset:
+class FindDataset():
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -74,8 +75,18 @@ class FindDataset:
 
         self.pluginIsActive = False
         self.dockwidget = None
+        self.getMapCoordinates = GetMapCoordinates(None, self.iface)
+        self.canvas = iface.mapCanvas()
 
 
+
+        
+    def clicked(self, pt):
+        '''Capture the coordinate when the mouse button has been released,
+        format it, and copy it to the clipboard.'''
+        print(pt)
+        canvasCRS = self.canvas.mapSettings().destinationCrs()
+        
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -164,8 +175,11 @@ class FindDataset:
         self.actions.append(action)
 
         return action
-
-
+    
+    def select_folder(self):
+        foldername = QFileDialog.getExistingDirectory(self.dockwidget, "Select folder ","",)
+        self.dockwidget.searchFolder.setText(foldername)
+    
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
@@ -180,7 +194,9 @@ class FindDataset:
 
     def onClosePlugin(self):
         """Cleanup necessary items here when plugin dockwidget is closed"""
-
+        print('plugin closed')
+        #Remove getMapCoordinates action
+        self.canvas.unsetMapTool(self.getMapCoordinates)
         #print "** CLOSING FindDataset"
 
         # disconnects
@@ -207,12 +223,13 @@ class FindDataset:
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
         del self.toolbar
+        #Remove getMapCoordinates action. I'm not sure if this needs to be here!
+        self.canvas.unsetMapTool(self.getMapCoordinates)
 
     #--------------------------------------------------------------------------
 
     def run(self):
         """Run method that loads and starts the plugin"""
-
         if not self.pluginIsActive:
             self.pluginIsActive = True
 
@@ -232,3 +249,11 @@ class FindDataset:
             # TODO: fix to allow choice of dock location
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)
             self.dockwidget.show()
+            # clear previous selected folders
+            self.dockwidget.searchFolder.clear()
+            # Connect select button to select_output_file method
+            self.dockwidget.toolButton.pressed.connect(self.select_folder)
+            # Activate click tool in canvas.
+            self.canvas.setMapTool(self.getMapCoordinates)
+            self.getMapCoordinates.setDockwidget(self.dockwidget)
+
