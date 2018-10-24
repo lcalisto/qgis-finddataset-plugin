@@ -83,7 +83,7 @@ class DatasetTools():
                     relDir = os.path.relpath(dir_, folder)
                     relFile = os.path.join(relDir, filename)
                     relFile=relFile.replace('./', '')
-                    fullFile= os.path.join(folder, filename) 
+                    fullFile= os.path.join(dir_, filename)
                     try:
                         #Open raster file and get its extent
                         ds=gdal.Open(fullFile)
@@ -142,9 +142,9 @@ class DatasetTools():
                     relDir = os.path.relpath(dir_, folder)
                     relFile = os.path.join(relDir, filename)
                     relFile=relFile.replace('./', '')
-                    fullFile= os.path.join(folder, filename)
-                    #removing the folowing extencions from the list
-                    if filename.endswith(('shx','dbf')):
+                    fullFile= os.path.join(dir_, filename)
+                    #removing the folowing extencions from the list. Also remove folders ('')
+                    if filename.endswith(('shx','dbf','')):
                         continue
                     try:
                         #Open vector file and get its extent
@@ -169,8 +169,8 @@ class DatasetTools():
                         continue
         else:
             for filename in os.listdir(folder):
-                #removing the folowing extencions from the list
-                if filename.endswith(('shx','dbf')):
+                #removing the folowing extencions from the list. Also remove folders ('')
+                if filename.endswith(('shx','dbf','')):
                     continue
                 try:
                     #Open vector file and get its extent
