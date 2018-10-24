@@ -17,13 +17,13 @@ from qgis.gui import QgsMapToolEmitPoint
 class GetMapCoordinates(QgsMapToolEmitPoint):
     '''Class to interact with the map canvas to capture the coordinate
     when the mouse button is pressed.'''
-    def __init__(self, settings, iface):
+    def __init__(self, iface):
         QgsMapToolEmitPoint.__init__(self, iface.mapCanvas())
         self.iface = iface
         self.canvas = iface.mapCanvas()
-        #self.settings = settings
         self.canvasClicked.connect(self.clicked)
-        
+        self.pt4326=None
+
     def activate(self):
         '''When activated set the cursor to a crosshair.'''
         self.canvas.setCursor(Qt.CrossCursor)
@@ -31,10 +31,17 @@ class GetMapCoordinates(QgsMapToolEmitPoint):
     def clicked(self, pt, b):
         '''Capture the coordinate when the mouse button has been released,
         format it, and copy it to dashboard'''
+        # transform the coordinate to 4326 but display it in the original crs
         canvasCRS = self.canvas.mapSettings().destinationCrs()
-        #FindDataset.get_datasets(pt,canvasCRS)
+        epsg4326 = QgsCoordinateReferenceSystem('EPSG:4326')
+        transform = QgsCoordinateTransform(canvasCRS, epsg4326, QgsProject.instance())
+        pt4326 = transform.transform(pt.x(), pt.y())
+        lat = pt4326.y()
+        lon = pt4326.x()
+        #change dockwidget corrdinate with the original crs
         self.dockwidget.coordinateText.setText(str("%.4f" % pt.x())+' , '+str("%.4f" % pt.y()))
-        print(self.dockwidget.recursiveSearch.isChecked())
-        print(self.dockwidget.searchFolder.displayText())
+        #assign point in 4326 crs to attribute so it can be used in other classes.
+        self.pt4326=pt4326
+        
     def setDockwidget(self, dockwidget):
         self.dockwidget=dockwidget

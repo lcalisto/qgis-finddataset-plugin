@@ -23,7 +23,8 @@
 """
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QFileDialog
+from PyQt5.QtWidgets import QAction, QFileDialog, QMessageBox, QTreeWidgetItem
+
 # Initialize Qt resources from file resources.py
 from .resources import *
 
@@ -32,6 +33,7 @@ from .find_dataset_dockwidget import FindDatasetDockWidget
 import os.path
 
 from .GetMapCoordinates import GetMapCoordinates
+from .DatasetTools import DatasetTools
 
 class FindDataset():
     """QGIS Plugin Implementation."""
@@ -49,6 +51,8 @@ class FindDataset():
 
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+        #variable to hold folder name in results
+        self.selectedFolder=None
 
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
@@ -75,18 +79,80 @@ class FindDataset():
 
         self.pluginIsActive = False
         self.dockwidget = None
-        self.getMapCoordinates = GetMapCoordinates(None, self.iface)
+        self.getMapCoordinates = GetMapCoordinates(self.iface)
         self.canvas = iface.mapCanvas()
-
-
+        self.datasetTools=DatasetTools(self.iface)
 
         
     def clicked(self, pt):
         '''Capture the coordinate when the mouse button has been released,
         format it, and copy it to the clipboard.'''
-        print(pt)
         canvasCRS = self.canvas.mapSettings().destinationCrs()
         
+    def loadDatasets(self):
+        " Loads raster and vectors from the selected items in the treeWidget"
+        selectedItems=self.dockwidget.treeWidget.selectedItems()
+        rasters=[]
+        vectors=[]
+        # Fill the lists with selected datasets
+        for item in selectedItems:
+            if item.parent().text(0)=='Rasters':
+                rasters.append(item.text(0))
+            if item.parent().text(0)=='Vectors':
+                vectors.append(item.text(0))
+        # Load selected datasets
+        for raster in rasters:
+            rasterPath=os.path.join(self.selectedFolder,raster)
+            layer = self.iface.addRasterLayer(rasterPath, os.path.splitext(os.path.basename(raster))[0])
+            if not layer:
+              print("Layer failed to load!")
+        for vector in vectors:
+            vectorPath=os.path.join(self.selectedFolder,vector)
+            layer = self.iface.addVectorLayer(vectorPath, os.path.splitext(os.path.basename(vector))[0], "ogr")
+            if not layer:
+              print("Layer failed to load!")
+              
+    def applyAction(self):
+        '''On apply button click'''
+        # check if all requirements are set
+        folderText=self.dockwidget.searchFolder.displayText()
+        if folderText=='':
+            QMessageBox.information(None, "Warning!", "No datasets folder selected. Please select a folder." )
+            return
+        recursiveBolean=self.dockwidget.recursiveSearch.isChecked()
+        if self.getMapCoordinates.pt4326==None:
+            QMessageBox.information(None, "Warning!", "Please capture a coordinate from map canvas." )
+            return
+        #save folder name for later loading the datasets
+        self.selectedFolder=folderText
+        # perform the folder search with 4326 crs
+        # check for rasters
+        intersectingRasters=self.datasetTools.getRasters(self.getMapCoordinates.pt4326,folderText,recursiveBolean)
+        #check for vectors
+        intersectingVectors=self.datasetTools.getVectors(self.getMapCoordinates.pt4326,folderText,recursiveBolean)
+        #populate the gui list with the results
+        #clear tree
+        self.dockwidget.treeWidget.clear()
+        if len(intersectingRasters)==0 and len(intersectingVectors)==0:
+            # Add no data found
+            r = QTreeWidgetItem(self.dockwidget.treeWidget, ['No datasets found!'])
+            r.setFlags(r.flags() & ~Qt.ItemIsSelectable)
+            self.dockwidget.treeWidget.addTopLevelItem(r)
+        if len(intersectingRasters)>0:
+            # Add rasters to Tree
+            r = QTreeWidgetItem(self.dockwidget.treeWidget, ['Rasters'])
+            r.setFlags(r.flags() & ~Qt.ItemIsSelectable)
+            self.dockwidget.treeWidget.addTopLevelItem(r)
+            for raster in intersectingRasters:
+                QTreeWidgetItem(r, [raster])
+        if len(intersectingVectors)>0:
+            # Add vectors to Tree
+            v = QTreeWidgetItem(self.dockwidget.treeWidget, ['Vectors'])
+            v.setFlags(v.flags() & ~Qt.ItemIsSelectable)
+            self.dockwidget.treeWidget.addTopLevelItem(v)
+            for vector in intersectingVectors:
+                QTreeWidgetItem(v, [vector])
+        self.dockwidget.treeWidget.expandAll()
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -253,7 +319,10 @@ class FindDataset():
             self.dockwidget.searchFolder.clear()
             # Connect select button to select_output_file method
             self.dockwidget.toolButton.pressed.connect(self.select_folder)
+            self.dockwidget.applyButton.pressed.connect(self.applyAction)
+            self.dockwidget.loadButton.pressed.connect(self.loadDatasets)
             # Activate click tool in canvas.
             self.canvas.setMapTool(self.getMapCoordinates)
             self.getMapCoordinates.setDockwidget(self.dockwidget)
+            
 
