@@ -130,7 +130,7 @@ class DatasetTools():
             for filename in os.listdir(folder):
                 # Excape windows hidden files.
                 if os.name=='nt':
-                    if self.isHiddenWindows(fullFile):
+                    if self.isHiddenWindows(os.path.join(folder, filename)):
                         continue
                 # Excape linux hidden files.
                 if os.name=='posix':
@@ -213,7 +213,7 @@ class DatasetTools():
             for filename in os.listdir(folder):
                 # Excape windows hidden files.
                 if os.name=='nt':
-                    if self.isHiddenWindows(fullFile):
+                    if self.isHiddenWindows(os.path.join(folder, filename)):
                         continue
                 # Excape linux hidden files.
                 if os.name=='posix':
