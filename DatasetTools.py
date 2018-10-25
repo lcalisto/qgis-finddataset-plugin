@@ -1,6 +1,6 @@
 from osgeo import gdal,ogr,osr
 gdal.UseExceptions() 
-import os
+import os, stat
 
 class DatasetTools():
     '''Class to interact with raster files'''
@@ -8,7 +8,18 @@ class DatasetTools():
         self.iface = iface
         #endswith also accepts tuples. This is the tuple of vector extensions
         self.vectorFiles=('shp')
-        
+        self.exclude= (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", 
+           ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg",
+           ".rm", ".swf", ".vob", ".wmv" ".docx", ".pdf",".rar", ".zip", ".7z", ".exe", 
+           ".tar.gz", ".tar", ".mp3", ".sh", ".c", ".cpp", ".h", 
+       ".gif", ".py", ".pyc", ".jar", ".sql", ".bundle",
+       ".html", ".php", ".log", ".bak", ".deb", "py","pdf","ppt","pptx","doc","docx","jar","shx","dbf","ini","dll")
+    def isHiddenWindows(filepath):
+        """ This function returns True is a file is hidden in windows"""
+        try:
+            return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+        except:
+            return None
     def GetExtent(self,gt,cols,rows):
         ''' Return list of corner coordinates from a geotransform
     
@@ -79,11 +90,21 @@ class DatasetTools():
         intersectingRasters=[]
         if recursive:
             for dir_, _, files in os.walk(folder):
+                # exclude linux hidden files and folders
+                if os.name=='posix':
+                    files[:] = [f for f in files if not f.startswith('.')]
+                    _[:] = [f for f in _ if not f.startswith('.')]
+                # exclude the folowing extencions, both windows or linux
+                files[:] = [f for f in files if not f.endswith(self.exclude)]
                 for filename in files:
                     relDir = os.path.relpath(dir_, folder)
                     relFile = os.path.join(relDir, filename)
                     relFile=relFile.replace('./', '')
                     fullFile= os.path.join(dir_, filename)
+                    # Excape windows hidden files.
+                    if os.name=='nt':
+                        if self.isHiddenWindows(fullFile):
+                            continue
                     try:
                         #Open raster file and get its extent
                         ds=gdal.Open(fullFile)
@@ -107,6 +128,17 @@ class DatasetTools():
                     
         else:
             for filename in os.listdir(folder):
+                # Excape windows hidden files.
+                if os.name=='nt':
+                    if self.isHiddenWindows(fullFile):
+                        continue
+                # Excape linux hidden files.
+                if os.name=='posix':
+                    if filename.startswith('.'):
+                        continue
+                #excluding custom files
+                if filename.endswith(self.exclude):
+                    continue
                 try:
                     #Open raster file and get its extent
                     ds=gdal.Open(os.path.join(folder, filename))
@@ -138,14 +170,24 @@ class DatasetTools():
         intersectingVectors=[]
         if recursive:
             for dir_, _, files in os.walk(folder):
+                # exclude linux hidden files and folders
+                if os.name=='posix':
+                    files[:] = [f for f in files if not f.startswith('.')]
+                    _[:] = [f for f in _ if not f.startswith('.')]
+                # exclude the folowing extencions, both windows or linux
+                files[:] = [f for f in files if not f.endswith(self.exclude)]
                 for filename in files:
                     relDir = os.path.relpath(dir_, folder)
                     relFile = os.path.join(relDir, filename)
                     relFile=relFile.replace('./', '')
                     fullFile= os.path.join(dir_, filename)
-                    #removing the folowing extencions from the list. Also remove folders ('')
-                    if filename.endswith(('shx','dbf','')):
-                        continue
+                    # Excape windows hidden files.
+                    if os.name=='nt':
+                        if isHiddenWindows(fullFile):
+                            continue
+                    #removing folders ('')
+#                     if filename.endswith(''):
+#                         continue
                     try:
                         #Open vector file and get its extent
                         ds=ogr.Open(fullFile)
@@ -169,8 +211,16 @@ class DatasetTools():
                         continue
         else:
             for filename in os.listdir(folder):
-                #removing the folowing extencions from the list. Also remove folders ('')
-                if filename.endswith(('shx','dbf','')):
+                # Excape windows hidden files.
+                if os.name=='nt':
+                    if self.isHiddenWindows(fullFile):
+                        continue
+                # Excape linux hidden files.
+                if os.name=='posix':
+                    if filename.startswith('.'):
+                        continue
+                #excluding custom files, folders ('')
+                if filename.endswith(self.exclude):
                     continue
                 try:
                     #Open vector file and get its extent
