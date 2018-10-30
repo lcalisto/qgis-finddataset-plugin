@@ -54,7 +54,7 @@ class FindDataset():
         self.plugin_dir = os.path.dirname(__file__)
         #variable to hold folder name in results
         self.selectedFolder=None
-
+        self.getMapCoordTool=None
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(
@@ -83,12 +83,6 @@ class FindDataset():
         self.getMapCoordinates = GetMapCoordinates(self.iface)
         self.canvas = iface.mapCanvas()
         self.datasetTools=DatasetTools(self.iface)
-
-        
-    def clicked(self, pt):
-        '''Capture the coordinate when the mouse button has been released,
-        format it, and copy it to the clipboard.'''
-        canvasCRS = self.canvas.mapSettings().destinationCrs()
         
     def loadDatasets(self):
         " Loads raster and vectors from the selected items in the treeWidget"
@@ -306,7 +300,12 @@ class FindDataset():
         self.canvas.unsetMapTool(self.getMapCoordinates)
 
     #--------------------------------------------------------------------------
-
+    def setGetMapToolCoord(self):
+        if self.dockwidget.captureButton.isChecked():
+            self.canvas.unsetMapTool(self.getMapCoordTool)
+        else:
+            self.canvas.setMapTool(self.getMapCoordTool)
+        
     def run(self):
         """Run method that loads and starts the plugin"""
         if not self.pluginIsActive:
@@ -336,7 +335,14 @@ class FindDataset():
             self.dockwidget.loadButton.pressed.connect(self.loadDatasets)
             self.dockwidget.helpButton.pressed.connect(self.helpAction)
             # Activate click tool in canvas.
-            self.canvas.setMapTool(self.getMapCoordinates)
-            self.getMapCoordinates.setDockwidget(self.dockwidget)
+            #self.canvas.setMapTool(self.getMapCoordinates)
             
+            #self.dockwidget.toolButton
+            self.dockwidget.captureButton.setIcon(QIcon(os.path.join(os.path.dirname(__file__),"target.png")))
+            self.dockwidget.captureButton.pressed.connect(self.setGetMapToolCoord)
+            self.dockwidget.captureButton.setChecked(True)
+            self.getMapCoordTool=self.getMapCoordinates
+            self.getMapCoordTool.setButton(self.dockwidget.captureButton)  
+            self.getMapCoordTool.setDockwidget(self.dockwidget)
+            self.canvas.setMapTool(self.getMapCoordTool)
 

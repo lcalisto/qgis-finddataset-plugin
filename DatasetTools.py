@@ -3,7 +3,7 @@ gdal.UseExceptions()
 import os, stat
 
 class DatasetTools():
-    '''Class to interact with raster files'''
+    '''Class to interact with dataset files'''
     def __init__(self, iface):
         self.iface = iface
         #endswith also accepts tuples. This is the tuple of vector extensions

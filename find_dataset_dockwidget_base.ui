@@ -111,6 +111,25 @@
       </property>
      </widget>
     </item>
+    <item row="7" column="3">
+     <widget class="QToolButton" name="captureButton">
+      <property name="text">
+       <string/>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>17</width>
+        <height>17</height>
+       </size>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
  </widget>

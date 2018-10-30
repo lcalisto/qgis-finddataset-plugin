@@ -23,10 +23,13 @@ class GetMapCoordinates(QgsMapToolEmitPoint):
         self.canvas = iface.mapCanvas()
         self.canvasClicked.connect(self.clicked)
         self.pt4326=None
+          
+
 
     def activate(self):
         '''When activated set the cursor to a crosshair.'''
         self.canvas.setCursor(Qt.CrossCursor)
+        
         
     def clicked(self, pt, b):
         '''Capture the coordinate when the mouse button has been released,
