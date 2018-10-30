@@ -13,8 +13,8 @@ class DatasetTools():
            ".rm", ".swf", ".vob", ".wmv" ".docx", ".pdf",".rar", ".zip", ".7z", ".exe", 
            ".tar.gz", ".tar", ".mp3", ".sh", ".c", ".cpp", ".h", 
        ".gif", ".py", ".pyc", ".jar", ".sql", ".bundle",
-       ".html", ".php", ".log", ".bak", ".deb", "py","pdf","ppt","pptx","doc","docx","jar","shx","dbf","ini","dll")
-    def isHiddenWindows(filepath):
+       ".html", ".php", ".log", ".bak", ".deb", "py","pdf","ppt","pptx","doc","docx","jar","shx","dbf","ini","dll","xls","xlsx")
+    def isHiddenWindows(self,filepath):
         """ This function returns True is a file is hidden in windows"""
         try:
             return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
@@ -172,7 +172,10 @@ class DatasetTools():
                 for filename in files:
                     relDir = os.path.relpath(dir_, folder)
                     relFile = os.path.join(relDir, filename)
+                    #In linux    
                     relFile=relFile.replace('./', '')
+                    #In windows    
+                    relFile = relFile.replace('.\\', '')
                     fullFile= os.path.join(dir_, filename)
                     # Excape windows hidden files.
                     if os.name=='nt':
