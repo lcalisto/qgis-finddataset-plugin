@@ -28,7 +28,7 @@ repository=https://github.com/lcalisto/qgis-finddataset-plugin
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=http://homepage
+homepage=https://github.com/lcalisto/qgis-finddataset-plugin
 category=Plugins
 icon=icon.png
 # experimental flag
