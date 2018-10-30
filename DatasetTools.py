@@ -73,21 +73,94 @@ class DatasetTools():
             @rtype:         Boolean
             @return:        Is inside or not, True or False
         '''
-        #print(pt.x())
-        #print(pt.y())
-        #print(ext)
         if vector:
             return ext[0][0] < pt.x() < ext[1][0] and ext[0][1] < pt.y() < ext[1][1]
         else:
             return ext[1][0] < pt.x() < ext[3][0] and ext[1][1] < pt.y() < ext[3][1]
-    
-    def getRasters(self, pt, folder, recursive):
+        
+    def checkRaster(self, pt,fullFile,relFile):
+        """
+        This function returns the raster extent in WGS84
+
+            @type pt:  C{tuple/list}
+            @param pt: Point coordinates
+            @type fullFile:  string
+            @param fullFile: full file path
+            @type relFile:  string
+            @param relFile: relative file path
+            @rtype:         C{tuple/list}
+            @return:    List of [[x,y],...[x,y]] extent coordinates
+        """
+        try:
+            #Open raster file and get its extent
+            ds=gdal.Open(fullFile)
+            gt=ds.GetGeoTransform()
+            cols = ds.RasterXSize
+            rows = ds.RasterYSize
+            ext=self.GetExtent(gt,cols,rows)
+            # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
+            src_srs=osr.SpatialReference()
+            src_srs.ImportFromWkt(ds.GetProjection())
+            tgt_srs=osr.SpatialReference()
+            tgt_srs.ImportFromEPSG(4326)
+            wgs84_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
+            #Check if point intersects this pair of coordinates (raster extents)
+            isIntersecting=self.CheckIntersection(pt,wgs84_ext,False)
+            if isIntersecting:
+                return True
+            else:
+                return False
+        except:
+            return None
+    def checkVector(self, pt,fullFile,relFile):
+        """
+        This function Checks all the vector layers and check if the point intersects at least one Layer
+        It returns True,False or None and a tuple with the found layer names
+
+            @type pt:  C{tuple/list}
+            @param pt: Point coordinates
+            @type fullFile:  string
+            @param fullFile: full file path
+            @type relFile:  string
+            @param relFile: relative file path
+            @rtype:         tupple
+            @return:    True False or None + list with found layer names
+        """
+        try:
+            #Open vector file and get its extent
+            ds=ogr.Open(fullFile)
+            #Checks all the vector layers and check if the point intersects at least one Layer. Shapes only have one layer but other formats may have more.
+            layerNames=[]
+            for layer in ds:
+                layerExtents=layer.GetExtent()
+                #print("x_min = %.2f x_max = %.2f y_min = %.2f y_max = %.2f" % (layerExtents[0], layerExtents[1], layerExtents[2], layerExtents[3]))
+                # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
+                src_srs=osr.SpatialReference()
+                src_srs.ImportFromWkt(str(layer.GetSpatialRef()))
+                tgt_srs=osr.SpatialReference()
+                tgt_srs.ImportFromEPSG(4326)
+                layerExt=[[layerExtents[0],layerExtents[2]],[layerExtents[1],layerExtents[3]]]
+                wgs84_ext=self.ReprojectCoords(layerExt,src_srs,tgt_srs)
+                #Check if point intersects this pair of coordinates (vector extents)
+                isIntersecting=self.CheckIntersection(pt,wgs84_ext,True)
+                if isIntersecting:
+                    layerNames.append(layer.GetName())
+            if len(layerNames)>0:
+                return True,layerNames
+            else:
+                return False,None
+        except:
+            return None,None
+
+    def getDataset(self, pt, folder, recursive, raster,vector):
         '''
         Process raster files and return intersecting rasters
         '''
         #loop in the folder files
         #print('start the loop',folder)
         intersectingRasters=[]
+        intersectingVectors=[]
+        intersectingVectorLayers=[]
         if recursive:
             for dir_, _, files in os.walk(folder):
                 # exclude linux hidden files and folders
@@ -105,27 +178,20 @@ class DatasetTools():
                     if os.name=='nt':
                         if self.isHiddenWindows(fullFile):
                             continue
-                    try:
-                        #Open raster file and get its extent
-                        ds=gdal.Open(fullFile)
-                        gt=ds.GetGeoTransform()
-                        cols = ds.RasterXSize
-                        rows = ds.RasterYSize
-                        ext=self.GetExtent(gt,cols,rows)
-                        # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
-                        src_srs=osr.SpatialReference()
-                        src_srs.ImportFromWkt(ds.GetProjection())
-                        tgt_srs=osr.SpatialReference()
-                        tgt_srs.ImportFromEPSG(4326)
-                        wgs84_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
-                        #Check if raster files intersect this 4 pair of coordinates
-                        isIntersecting=self.CheckIntersection(pt,wgs84_ext,False)
+                    # check if file is a raster
+                    if raster:
+                        #Check if raster intersects. If we get None then it's not a geo file!
+                        isIntersecting=self.checkRaster(pt,fullFile,relFile)
                         if isIntersecting:
                             intersectingRasters.append(relFile)
-                        continue  
-                    except:
-                        continue       
-                    
+                    # check if file is a vector
+                    if vector:
+                        #Check if vector intersects. If we get None then it's not a geo file!
+                        isIntersecting,layerNames=self.checkVector(pt,fullFile,relFile)
+                        if isIntersecting:
+                            intersectingVectors.append(relFile)
+                            intersectingVectorLayers.append(layerNames)
+                    #continue   
         else:
             for filename in os.listdir(folder):
                 # Excape windows hidden files.
@@ -139,131 +205,21 @@ class DatasetTools():
                 #excluding custom files
                 if filename.endswith(self.exclude):
                     continue
-                try:
-                    #Open raster file and get its extent
-                    ds=gdal.Open(os.path.join(folder, filename))
-                    gt=ds.GetGeoTransform()
-                    cols = ds.RasterXSize
-                    rows = ds.RasterYSize
-                    ext=self.GetExtent(gt,cols,rows)
-                    # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
-                    src_srs=osr.SpatialReference()
-                    src_srs.ImportFromWkt(ds.GetProjection())
-                    tgt_srs=osr.SpatialReference()
-                    tgt_srs.ImportFromEPSG(4326)
-                    wgs84_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
-                    #Check if raster files intersect this 4 pair of coordinates
-                    isIntersecting=self.CheckIntersection(pt,wgs84_ext,False)
+                # check if file is a raster
+                if raster:
+                    #Check if raster intersects. If we get None then it's not a geo file!
+                    isIntersecting=self.checkRaster(pt,os.path.join(folder, filename),filename)
                     if isIntersecting:
                         intersectingRasters.append(filename)
-                    continue
-                except:
-                    continue
-        return intersectingRasters
-    
-    def getVectors(self, pt, folder, recursive):
-        '''
-        Process vector files and return intersecting vectos
-        '''
-        #loop in the folder files
-        #print('start the loop',folder)
-        intersectingVectors=[]
-        if recursive:
-            for dir_, _, files in os.walk(folder):
-                # exclude linux hidden files and folders
-                if os.name=='posix':
-                    files[:] = [f for f in files if not f.startswith('.')]
-                    _[:] = [f for f in _ if not f.startswith('.')]
-                # exclude the folowing extencions, both windows or linux
-                files[:] = [f for f in files if not f.endswith(self.exclude)]
-                for filename in files:
-                    relDir = os.path.relpath(dir_, folder)
-                    relFile = os.path.join(relDir, filename)
-                    relFile=relFile.replace('./', '')
-                    fullFile= os.path.join(dir_, filename)
-                    # Excape windows hidden files.
-                    if os.name=='nt':
-                        if isHiddenWindows(fullFile):
-                            continue
-                    #removing folders ('')
-#                     if filename.endswith(''):
-#                         continue
-                    try:
-                        #Open vector file and get its extent
-                        ds=ogr.Open(fullFile)
-                        #todo loop to all the vector layers and check if the point intersects at least one Layer. Shapes only have one layer but other formats may have more.
-                        layer=ds.GetLayer(0)
-                        layerExtents=layer.GetExtent()
-                        #print("x_min = %.2f x_max = %.2f y_min = %.2f y_max = %.2f" % (layerExtents[0], layerExtents[1], layerExtents[2], layerExtents[3]))
-                        # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
-                        src_srs=osr.SpatialReference()
-                        src_srs.ImportFromWkt(str(layer.GetSpatialRef()))
-                        tgt_srs=osr.SpatialReference()
-                        tgt_srs.ImportFromEPSG(4326)
-                        layerExt=[[layerExtents[0],layerExtents[2]],[layerExtents[1],layerExtents[3]]]
-                        wgs84_ext=self.ReprojectCoords(layerExt,src_srs,tgt_srs)
-                        #Check if point intersects this pair of coordinates (vector extents)
-                        isIntersecting=self.CheckIntersection(pt,wgs84_ext,True)
-                        if isIntersecting:
-                            intersectingVectors.append(relFile)
+                # check if file is a vector
+                if vector:
+                    # in case of vectors we don't process folders.
+                    if os.path.isdir(os.path.join(folder, filename)):
                         continue
-                    except:
-                        continue
-        else:
-            for filename in os.listdir(folder):
-                # Excape windows hidden files.
-                if os.name=='nt':
-                    if self.isHiddenWindows(os.path.join(folder, filename)):
-                        continue
-                # Excape linux hidden files.
-                if os.name=='posix':
-                    if filename.startswith('.'):
-                        continue
-                #excluding custom files, folders ('')
-                if filename.endswith(self.exclude):
-                    continue
-                try:
-                    #Open vector file and get its extent
-                    ds=ogr.Open(os.path.join(folder, filename))
-                    #todo loop to all the vector layers and check if the point intersects at least one Layer. Shapes only have one layer but other formats may have more.
-                    layer=ds.GetLayer(0)
-                    layerExtents=layer.GetExtent()
-                    #print("x_min = %.2f x_max = %.2f y_min = %.2f y_max = %.2f" % (layerExtents[0], layerExtents[1], layerExtents[2], layerExtents[3]))
-                    # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
-                    src_srs=osr.SpatialReference()
-                    src_srs.ImportFromWkt(str(layer.GetSpatialRef()))
-                    tgt_srs=osr.SpatialReference()
-                    tgt_srs.ImportFromEPSG(4326)
-                    layerExt=[[layerExtents[0],layerExtents[2]],[layerExtents[1],layerExtents[3]]]
-                    wgs84_ext=self.ReprojectCoords(layerExt,src_srs,tgt_srs)
-                    #Check if point intersects this pair of coordinates (vector extents)
-                    isIntersecting=self.CheckIntersection(pt,wgs84_ext,True)
+                    #Check if vector intersects. If we get None then it's not a geo file!
+                    isIntersecting,layerNames=self.checkVector(pt,os.path.join(folder, filename),filename)
                     if isIntersecting:
                         intersectingVectors.append(filename)
-                    continue
-                except:
-                    continue
-#                 if filename.endswith(self.vectorFiles): 
-#                     #print(os.path.join(folder, filename))
-#                     #Open vector file and get its extent
-#                     ds=ogr.Open(os.path.join(folder, filename))
-#                     #todo loop to all the vector layers and check if the point intersects at least one Layer. Shapes only have one layer but other formats may have more.
-#                     layer=ds.GetLayer(0)
-#                     layerExtents=layer.GetExtent()
-#                     #print("x_min = %.2f x_max = %.2f y_min = %.2f y_max = %.2f" % (layerExtents[0], layerExtents[1], layerExtents[2], layerExtents[3]))
-#                     # reproject the extent to 4326 because the point will always be 4326 (to keep srs consistency)
-#                     src_srs=osr.SpatialReference()
-#                     src_srs.ImportFromWkt(str(layer.GetSpatialRef()))
-#                     tgt_srs=osr.SpatialReference()
-#                     tgt_srs.ImportFromEPSG(4326)
-#                     layerExt=[[layerExtents[0],layerExtents[2]],[layerExtents[1],layerExtents[3]]]
-#                     wgs84_ext=self.ReprojectCoords(layerExt,src_srs,tgt_srs)
-#                     #Check if point intersects this pair of coordinates (vector extents)
-#                     isIntersecting=self.CheckIntersection(pt,wgs84_ext,True)
-#                     if isIntersecting:
-#                         intersectingVectors.append(filename)
-#                     continue
-#                 else:
-#                     # do nothing. This are not raster files
-#                     continue
-        return intersectingVectors
+                        intersectingVectorLayers.append(layerNames)
+                #continue
+        return {"rasters":intersectingRasters,"vectors":intersectingVectors,"vectorLayers":intersectingVectorLayers}

@@ -16,8 +16,8 @@ email=luis.calisto@hotmail.com
 
 about=Finds datatesets, from a specific folder(s), that intersect a location in the map.
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/lcalisto/qgis-finddataset-plugin/issues
+repository=https://github.com/lcalisto/qgis-finddataset-plugin
 # End of mandatory metadata
 
 # Recommended items:

@@ -34,6 +34,7 @@ import os.path
 
 from .GetMapCoordinates import GetMapCoordinates
 from .DatasetTools import DatasetTools
+import webbrowser
 
 class FindDataset():
     """QGIS Plugin Implementation."""
@@ -99,6 +100,7 @@ class FindDataset():
             if item.parent().text(0)=='Rasters':
                 rasters.append(item.text(0))
             if item.parent().text(0)=='Vectors':
+                #We need to remove 
                 vectors.append(item.text(0))
         # Load selected datasets
         for raster in rasters:
@@ -107,7 +109,10 @@ class FindDataset():
             if not layer:
               print("Layer failed to load!")
         for vector in vectors:
-            vectorPath=os.path.join(self.selectedFolder,vector)
+            #|layername=entities
+            #Split vector to exctract possible layer names. We only need the path
+            vectorList=vector.split()
+            vectorPath=os.path.join(self.selectedFolder,vectorList[0])
             layer = self.iface.addVectorLayer(vectorPath, os.path.splitext(os.path.basename(vector))[0], "ogr")
             if not layer:
               print("Layer failed to load!")
@@ -125,34 +130,41 @@ class FindDataset():
             return
         #save folder name for later loading the datasets
         self.selectedFolder=folderText
-        # perform the folder search with 4326 crs
-        # check for rasters
-        intersectingRasters=self.datasetTools.getRasters(self.getMapCoordinates.pt4326,folderText,recursiveBolean)
-        #check for vectors
-        intersectingVectors=self.datasetTools.getVectors(self.getMapCoordinates.pt4326,folderText,recursiveBolean)
+        # perform the folder search with 4326 crs, check for Datasets
+        intersectingDict=self.datasetTools.getDataset(self.getMapCoordinates.pt4326,folderText,recursiveBolean,True,True)
         #populate the gui list with the results
         #clear tree
         self.dockwidget.treeWidget.clear()
-        if len(intersectingRasters)==0 and len(intersectingVectors)==0:
+        if len(intersectingDict["rasters"])==0 and len(intersectingDict["vectors"])==0:
             # Add no data found
             r = QTreeWidgetItem(self.dockwidget.treeWidget, ['No datasets found!'])
             r.setFlags(r.flags() & ~Qt.ItemIsSelectable)
             self.dockwidget.treeWidget.addTopLevelItem(r)
-        if len(intersectingRasters)>0:
+        if len(intersectingDict["rasters"])>0:
             # Add rasters to Tree
             r = QTreeWidgetItem(self.dockwidget.treeWidget, ['Rasters'])
             r.setFlags(r.flags() & ~Qt.ItemIsSelectable)
             self.dockwidget.treeWidget.addTopLevelItem(r)
-            for raster in intersectingRasters:
+            for raster in intersectingDict["rasters"]:
                 QTreeWidgetItem(r, [raster])
-        if len(intersectingVectors)>0:
+        if len(intersectingDict["vectors"])>0:
             # Add vectors to Tree
             v = QTreeWidgetItem(self.dockwidget.treeWidget, ['Vectors'])
             v.setFlags(v.flags() & ~Qt.ItemIsSelectable)
             self.dockwidget.treeWidget.addTopLevelItem(v)
-            for vector in intersectingVectors:
-                QTreeWidgetItem(v, [vector])
+            for idx,vector in enumerate(intersectingDict["vectors"]):
+                # Shapefiles only have 1 layer. Therefore no need to add layer name.
+                if vector.endswith('.shp'):
+                    QTreeWidgetItem(v, [vector])
+                else:
+                    # add the vector filepath + the layers string into the interface
+                    #Join the vector layers into a string
+                    vectorLayers=', '.join(intersectingDict["vectorLayers"][idx])
+                    QTreeWidgetItem(v, [vector+" ("+vectorLayers+")"])
         self.dockwidget.treeWidget.expandAll()
+    def helpAction(self):
+        '''Display a help page'''
+        webbrowser.open('https://github.com/lcalisto/qgis-finddataset-plugin', new=2)
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -248,8 +260,9 @@ class FindDataset():
     
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
-        icon_path = ':/plugins/find_dataset/icon.png'
+        
+        #icon_path = ':/plugins/find_dataset/icon.png'
+        icon_path = os.path.join(os.path.dirname(__file__),"icon.png")
         self.add_action(
             icon_path,
             text=self.tr(u'Find dataset'),
@@ -321,6 +334,7 @@ class FindDataset():
             self.dockwidget.toolButton.pressed.connect(self.select_folder)
             self.dockwidget.applyButton.pressed.connect(self.applyAction)
             self.dockwidget.loadButton.pressed.connect(self.loadDatasets)
+            self.dockwidget.helpButton.pressed.connect(self.helpAction)
             # Activate click tool in canvas.
             self.canvas.setMapTool(self.getMapCoordinates)
             self.getMapCoordinates.setDockwidget(self.dockwidget)
