@@ -301,6 +301,7 @@ class FindDataset():
 
     #--------------------------------------------------------------------------
     def setGetMapToolCoord(self):
+        """ Method that is connected to the target button. Activates and deactivates map tool """
         if self.dockwidget.captureButton.isChecked():
             self.canvas.unsetMapTool(self.getMapCoordTool)
         else:
@@ -335,9 +336,6 @@ class FindDataset():
             self.dockwidget.loadButton.pressed.connect(self.loadDatasets)
             self.dockwidget.helpButton.pressed.connect(self.helpAction)
             # Activate click tool in canvas.
-            #self.canvas.setMapTool(self.getMapCoordinates)
-            
-            #self.dockwidget.toolButton
             self.dockwidget.captureButton.setIcon(QIcon(os.path.join(os.path.dirname(__file__),"target.png")))
             self.dockwidget.captureButton.pressed.connect(self.setGetMapToolCoord)
             self.dockwidget.captureButton.setChecked(True)
