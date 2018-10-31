@@ -125,7 +125,9 @@ class FindDataset():
         #save folder name for later loading the datasets
         self.selectedFolder=folderText
         # perform the folder search with 4326 crs, check for Datasets
-        intersectingDict=self.datasetTools.getDataset(self.getMapCoordinates.pt4326,folderText,recursiveBolean,True,True)
+        rastersCheck=self.dockwidget.rastersBox.isChecked()
+        vectorsCheck=self.dockwidget.vectorsBox.isChecked()
+        intersectingDict=self.datasetTools.getDataset(self.getMapCoordinates.pt4326,folderText,recursiveBolean,rastersCheck,vectorsCheck)
         #populate the gui list with the results
         #clear tree
         self.dockwidget.treeWidget.clear()
