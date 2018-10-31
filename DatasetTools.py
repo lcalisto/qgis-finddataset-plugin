@@ -1,4 +1,7 @@
 from osgeo import gdal,ogr,osr
+from qgis.PyQt.QtWidgets import QProgressBar
+from qgis.PyQt.QtCore import Qt
+from qgis.core import *
 gdal.UseExceptions() 
 import os, stat
 
@@ -161,15 +164,23 @@ class DatasetTools():
         intersectingRasters=[]
         intersectingVectors=[]
         intersectingVectorLayers=[]
+        progressMessageBar = self.iface.messageBar().createMessage("Scanning folders and files")
+        progress = QProgressBar()
+        progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+        progressMessageBar.layout().addWidget(progress)
+        self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
         if recursive:
             for dir_, _, files in os.walk(folder):
+                progressMessageBar.setText('Scanning'+dir_)
                 # exclude linux hidden files and folders
                 if os.name=='posix':
                     files[:] = [f for f in files if not f.startswith('.')]
                     _[:] = [f for f in _ if not f.startswith('.')]
                 # exclude the folowing extencions, both windows or linux
                 files[:] = [f for f in files if not f.endswith(self.exclude)]
-                for filename in files:
+                count = len(files)
+                progress.setMaximum(count)
+                for i, filename in enumerate(files):
                     relDir = os.path.relpath(dir_, folder)
                     relFile = os.path.join(relDir, filename)
                     #In linux    
@@ -196,8 +207,13 @@ class DatasetTools():
                         if isIntersecting:
                             intersectingVectors.append(relFile)
                             intersectingVectorLayers.append(layerNames)  
+                    progress.setValue(i + 1)
+                    self.iface.messageBar().clearWidgets()
         else:
-            for filename in os.listdir(folder):
+            files=os.listdir(folder)
+            count = len(files)
+            progress.setMaximum(count)
+            for i, filename in enumerate(files):
                 # Excape windows hidden files.
                 if os.name=='nt':
                     if self.isHiddenWindows(os.path.join(folder, filename)):
@@ -227,4 +243,6 @@ class DatasetTools():
                     if isIntersecting:
                         intersectingVectors.append(filename)
                         intersectingVectorLayers.append(layerNames)
+                progress.setValue(i + 1)
+                self.iface.messageBar().clearWidgets()
         return {"rasters":intersectingRasters,"vectors":intersectingVectors,"vectorLayers":intersectingVectorLayers}
