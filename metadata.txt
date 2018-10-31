@@ -14,7 +14,7 @@ version=1.0.0
 author=Luis Calisto and Andre Mano
 email=luis.calisto@hotmail.com
 
-about=Finds datatesets, from a specific folder(s), that intersect a location in the map.
+about=Finds datasets, from a specific folder(s), that intersect a location in the map.
 
 tracker=https://github.com/lcalisto/qgis-finddataset-plugin/issues
 repository=https://github.com/lcalisto/qgis-finddataset-plugin
@@ -26,13 +26,13 @@ repository=https://github.com/lcalisto/qgis-finddataset-plugin
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python
+tags=raster,vector,datasets,find,search,filesystem,files,location,point,intersects,intersect
 
 homepage=https://github.com/lcalisto/qgis-finddataset-plugin
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
