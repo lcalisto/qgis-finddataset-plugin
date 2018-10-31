@@ -187,14 +187,15 @@ class DatasetTools():
                         isIntersecting=self.checkRaster(pt,fullFile,relFile)
                         if isIntersecting:
                             intersectingRasters.append(relFile)
+                            #If it's a raster fine, there is no need to check if its a vector!
+                            continue
                     # check if file is a vector
                     if vector:
                         #Check if vector intersects. If we get None then it's not a geo file!
                         isIntersecting,layerNames=self.checkVector(pt,fullFile,relFile)
                         if isIntersecting:
                             intersectingVectors.append(relFile)
-                            intersectingVectorLayers.append(layerNames)
-                    #continue   
+                            intersectingVectorLayers.append(layerNames)  
         else:
             for filename in os.listdir(folder):
                 # Excape windows hidden files.
@@ -214,6 +215,8 @@ class DatasetTools():
                     isIntersecting=self.checkRaster(pt,os.path.join(folder, filename),filename)
                     if isIntersecting:
                         intersectingRasters.append(filename)
+                        #If it's a raster fine, there is no need to check if its a vector!
+                        continue
                 # check if file is a vector
                 if vector:
                     # in case of vectors we don't process folders.
@@ -224,5 +227,4 @@ class DatasetTools():
                     if isIntersecting:
                         intersectingVectors.append(filename)
                         intersectingVectorLayers.append(layerNames)
-                #continue
         return {"rasters":intersectingRasters,"vectors":intersectingVectors,"vectorLayers":intersectingVectorLayers}
