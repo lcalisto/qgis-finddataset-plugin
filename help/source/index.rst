@@ -17,4 +17,10 @@ The plugin takes the coordinates of the location the user specifies according to
 How to use **FindDataset** works?
 ########
 A usage example can be seen below.
-.. figure:: finddataset.gif
+
+.. figure:: find_dataset.gif
+   :width: 200px
+    :align: center
+    :height: 100px
+    :alt: FindDataset usage
+    :figclass: align-center
