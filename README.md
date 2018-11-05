@@ -1,6 +1,5 @@
-# qgis-finddataset-plugin
 
-# Welcome to FindDataset's documentation!
+# Welcome to FindDataset's plugin documentation!
 ============================================
 
 ## What is **FindDataset** plugin?
