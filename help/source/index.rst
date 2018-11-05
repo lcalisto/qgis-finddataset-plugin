@@ -18,4 +18,4 @@ How to use **FindDataset** works?
 ########
 A usage example can be seen below.
 
-.. figure:: find_dataset.gif
+.. figure:: ../../find_dataset.gif
