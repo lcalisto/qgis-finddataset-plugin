@@ -16,3 +16,6 @@ A usage example can be seen below:
 
 ![]( find_dataset.gif)
 
+## How to install **FindDataset**?
+
+You can install this plugin from the official QGIS plugin repository. [https://plugins.qgis.org/plugins/finddataset](https://plugins.qgis.org/plugins/finddataset) 
