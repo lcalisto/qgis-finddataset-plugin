@@ -21,8 +21,8 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import *
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import QAction, QFileDialog, QMessageBox, QTreeWidgetItem
 
 # Initialize Qt resources from file resources.py
@@ -35,6 +35,15 @@ import os.path
 from .GetMapCoordinates import GetMapCoordinates
 from .DatasetTools import DatasetTools
 import webbrowser
+
+# add qgis interaction 
+from qgis.core import *
+#from qgis.gui import QgsMessageBar
+#from qgis.utils import iface
+
+#need some processing as well:
+import processing
+from osgeo import osr
 
 class FindDataset():
     """QGIS Plugin Implementation."""
@@ -110,7 +119,108 @@ class FindDataset():
             layer = self.iface.addVectorLayer(vectorPath, os.path.splitext(os.path.basename(vector))[0], "ogr")
             if not layer:
               print("Layer failed to load!")
-              
+    
+    def extractExtent(self,layer,srs):
+        it = layer.getFeatures()
+        print(geometry)
+    
+    def exportDatasets(self):
+        " exports raster and vectorsfrom the selected items with their extent in a polygon geopackage"
+        selectedItems=self.dockwidget.treeWidget.selectedItems()
+        rasters=[]
+        vectors=[]
+        # Fill the lists with selected datasets
+        for item in selectedItems:
+            if item.parent().text(0)=='Rasters':
+                rasters.append(item.text(0))
+            if item.parent().text(0)=='Vectors':
+                #We need to remove 
+                vectors.append(item.text(0))
+        #create layer in memory
+        vl = QgsVectorLayer("Polygon", "catalog" , "memory")
+        QgsProject.instance().addMapLayer(vl)
+        pr = vl.dataProvider()
+
+        # Enter editing mode
+        vl.startEditing()
+
+        # add fields
+        pr.addAttributes( [ QgsField("name", QVariant.String),
+                        QgsField("path",  QVariant.String),
+                        QgsField("last edited", QVariant.DateTime),
+                        QgsField("fields", QVariant.String),
+                        QgsField("file Extension", QVariant.String)] )
+        for raster in rasters:
+
+            rasterPath=os.path.join(self.selectedFolder,raster)
+            rasterName=raster
+            rasterEdited=os.path.getmtime(rasterPath)
+            rasterfields=""
+            filename, file_extension = os.path.splitext(rasterPath)
+            #get extent:
+            rasterExtent = processing.run("qgis:polygonfromlayerextent", {'INPUT':rasterPath,'OUTPUT':'memory:'})
+            it = rasterExtent['OUTPUT'].getFeatures()
+                #unfortunately we need to transform a bit
+            sourceCrs = rasterExtent['OUTPUT'].crs()
+            # = QgsCoordinateReferenceSystem(4326)
+            src_srs=osr.SpatialReference()
+            src_srs.ImportFromEPSG(int(sourceCrs.authid()[5:]))
+            tgt_srs=osr.SpatialReference()
+            tgt_srs.ImportFromEPSG(4326)
+            transform = osr.CoordinateTransformation( src_srs, tgt_srs)
+            fet = QgsFeature()
+            for feat in it:
+                polygon = feat.geometry().asPolygon()
+                points = []
+                for point in polygon[0]:
+                    x,y,z = transform.TransformPoint(point.x(), point.y())
+                    points.append(QgsPointXY(x,y))
+                fet.setGeometry(QgsGeometry.fromPolygonXY([points]))
+                #feat.geometry().transform(tr)
+            fet.setAttributes( [rasterName, rasterPath, rasterEdited, rasterfields, file_extension])
+            pr.addFeatures( [ fet ] )
+        for vector in vectors:
+
+            vectorPath=os.path.join(self.selectedFolder,vector)
+            vectorName=vector
+            vectorEdited=os.path.getmtime(vectorPath)
+            #deal with the fields:
+            layer = QgsVectorLayer(vectorPath, None, "ogr")
+            fields = layer.fields()
+            field_names = [field.name() for field in fields]
+            vectorFields="; ".join(field_names)
+            filename, file_extension = os.path.splitext(vectorName)
+            #get extent:
+            vectorExtent = processing.run("qgis:polygonfromlayerextent", {'INPUT':vectorPath,'OUTPUT':'memory:'})
+            it = vectorExtent['OUTPUT'].getFeatures()
+                #unfortunately we need to transform a bit
+            #if sourceCrs.authid() != "EPSG:4326":
+            sourceCrs = vectorExtent['OUTPUT'].crs()
+            # = QgsCoordinateReferenceSystem(4326)
+            src_srs=osr.SpatialReference()
+            src_srs.ImportFromEPSG(int(sourceCrs.authid()[5:]))
+            tgt_srs=osr.SpatialReference()
+            tgt_srs.ImportFromEPSG(4326)
+            transform = osr.CoordinateTransformation( src_srs, tgt_srs)
+            fet = QgsFeature()
+            for feat in it:
+                polygon = feat.geometry().asPolygon()
+                points = []
+                for point in polygon[0]:
+                    x,y,z = transform.TransformPoint(point.x(), point.y())
+                    points.append(QgsPointXY(x,y))
+                fet.setGeometry(QgsGeometry.fromPolygonXY([points]))
+            fet.setAttributes( [vectorName, vectorPath, vectorEdited, vectorFields, file_extension])
+            pr.addFeatures( [ fet ] )
+        vl.commitChanges()
+        mySymbol=QgsFillSymbol.createSimple({'color':"#ff0000",
+                                                        'color_border':'#ff0000',
+                                                        'width_border':'1',
+                                                        'style':'no'})
+        myRenderer = vl.renderer()
+        myRenderer.setSymbol(mySymbol)
+        vl.triggerRepaint()
+
     def applyAction(self):
         '''On apply button click'''
         # check if all requirements are set
@@ -336,6 +446,7 @@ class FindDataset():
             self.dockwidget.toolButton.pressed.connect(self.select_folder)
             self.dockwidget.applyButton.pressed.connect(self.applyAction)
             self.dockwidget.loadButton.pressed.connect(self.loadDatasets)
+            self.dockwidget.exportButton.pressed.connect(self.exportDatasets)
             self.dockwidget.helpButton.pressed.connect(self.helpAction)
             # Activate click tool in canvas.
             self.dockwidget.captureButton.setIcon(QIcon(os.path.join(os.path.dirname(__file__),"target.png")))
