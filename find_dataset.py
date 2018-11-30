@@ -180,12 +180,12 @@ class FindDataset():
             fet.setAttributes( [rasterName, rasterPath, rasterEdited, rasterfields, file_extension])
             pr.addFeatures( [ fet ] )
         for vector in vectors:
-
-            vectorPath=os.path.join(self.selectedFolder,vector)
+            vectorList=vector.split()
+            vectorPath=os.path.join(self.selectedFolder,vectorList[0])
             vectorName=vector
             vectorEdited=os.path.getmtime(vectorPath)
             #deal with the fields:
-            layer = QgsVectorLayer(vectorPath, None, "ogr")
+            layer = QgsVectorLayer(vectorPath, os.path.splitext(os.path.basename(vector))[0], "ogr")
             fields = layer.fields()
             field_names = [field.name() for field in fields]
             vectorFields="; ".join(field_names)
