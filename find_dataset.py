@@ -33,6 +33,7 @@ from .find_dataset_dockwidget import FindDatasetDockWidget
 import os.path
 
 from .GetMapCoordinates import GetMapCoordinates
+from .GetMapBbox import GetMapBbox
 from .DatasetTools import DatasetTools
 import webbrowser
 
@@ -64,6 +65,8 @@ class FindDataset():
         #variable to hold folder name in results
         self.selectedFolder=None
         self.getMapCoordTool=None
+        self.getMapBboxTool=None
+        self.selectedCoords4326=None
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(
@@ -89,13 +92,17 @@ class FindDataset():
 
         self.pluginIsActive = False
         self.dockwidget = None
-        self.getMapCoordinates = GetMapCoordinates(self.iface)
+        self.getMapCoordinates = GetMapCoordinates(self,self.iface)
+        self.getMapBbox = GetMapBbox(self,self.iface)
         self.canvas = iface.mapCanvas()
         self.datasetTools=DatasetTools(self.iface)
         
     def loadDatasets(self):
         " Loads raster and vectors from the selected items in the treeWidget"
         selectedItems=self.dockwidget.treeWidget.selectedItems()
+        if len(selectedItems)<1:
+            QMessageBox.information(None, "Warning!", "No datasets selected. Please select at least one dataset from the results." )
+            return
         rasters=[]
         vectors=[]
         # Fill the lists with selected datasets
@@ -122,13 +129,13 @@ class FindDataset():
     
     def extractExtent(self,layer,srs):
         it = layer.getFeatures()
-        print(geometry)
+        #print(geometry)
     
     def exportDatasets(self):
         " exports raster and vectorsfrom the selected items with their extent in a polygon geopackage"
         selectedItems=self.dockwidget.treeWidget.selectedItems()
         if len(selectedItems)<1:
-            QMessageBox.information(None, "Warning!", "No datasets selected. Please select at least one dataset." )
+            QMessageBox.information(None, "Warning!", "No datasets selected. Please select at least one dataset from the results." )
             return
         rasters=[]
         vectors=[]
@@ -232,15 +239,15 @@ class FindDataset():
             QMessageBox.information(None, "Warning!", "No datasets folder selected. Please select a folder." )
             return
         recursiveBolean=self.dockwidget.recursiveSearch.isChecked()
-        if self.getMapCoordinates.pt4326==None:
-            QMessageBox.information(None, "Warning!", "Please capture a coordinate from map canvas." )
+        if self.selectedCoords4326==None:
+            QMessageBox.information(None, "Warning!", "Please capture a coordinate/bbox from map canvas." )
             return
         #save folder name for later loading the datasets
         self.selectedFolder=folderText
         # perform the folder search with 4326 crs, check for Datasets
         rastersCheck=self.dockwidget.rastersBox.isChecked()
         vectorsCheck=self.dockwidget.vectorsBox.isChecked()
-        intersectingDict=self.datasetTools.getDataset(self.getMapCoordinates.pt4326,folderText,recursiveBolean,rastersCheck,vectorsCheck)
+        intersectingDict=self.datasetTools.getDataset(self.selectedCoords4326,folderText,recursiveBolean,rastersCheck,vectorsCheck)
         #populate the gui list with the results
         #clear tree
         self.dockwidget.treeWidget.clear()
@@ -385,6 +392,7 @@ class FindDataset():
         print('plugin closed')
         #Remove getMapCoordinates action
         self.canvas.unsetMapTool(self.getMapCoordinates)
+        self.canvas.unsetMapTool(self.getMapBbox)
         #print "** CLOSING FindDataset"
 
         # disconnects
@@ -394,7 +402,7 @@ class FindDataset():
         # for reuse if plugin is reopened
         # Commented next statement since it causes QGIS crashe
         # when closing the docked window:
-        # self.dockwidget = None
+        self.dockwidget = None
 
         self.pluginIsActive = False
 
@@ -418,9 +426,24 @@ class FindDataset():
     def setGetMapToolCoord(self):
         """ Method that is connected to the target button. Activates and deactivates map tool """
         if self.dockwidget.captureButton.isChecked():
+            #print('point not checked')
             self.canvas.unsetMapTool(self.getMapCoordTool)
-        else:
+            self.dockwidget.captureButton_2.setChecked(True)
+        elif not self.dockwidget.captureButton.isChecked():
+            #print('point checked')
+            self.dockwidget.captureButton_2.setChecked(False)
             self.canvas.setMapTool(self.getMapCoordTool)
+            
+    def setGetMapToolBbox(self):
+        """ Method that is connected to the target button. Activates and deactivates map tool """
+        if self.dockwidget.captureButton_2.isChecked():
+            #print('bbox not checked')
+            self.canvas.unsetMapTool(self.getMapBboxTool)
+            self.dockwidget.captureButton_2.setChecked(True)
+        elif not self.dockwidget.captureButton_2.isChecked():
+            #print('bbox checked')
+            self.dockwidget.captureButton.setChecked(False)
+            self.canvas.setMapTool(self.getMapBboxTool)
         
     def run(self):
         """Run method that loads and starts the plugin"""
@@ -453,10 +476,19 @@ class FindDataset():
             self.dockwidget.helpButton.pressed.connect(self.helpAction)
             # Activate click tool in canvas.
             self.dockwidget.captureButton.setIcon(QIcon(os.path.join(os.path.dirname(__file__),"target.png")))
-            self.dockwidget.captureButton.pressed.connect(self.setGetMapToolCoord)
             self.dockwidget.captureButton.setChecked(True)
+            self.dockwidget.captureButton.pressed.connect(self.setGetMapToolCoord)
+            #deal with bbox button
+            self.dockwidget.captureButton_2.setIcon(QIcon(os.path.join(os.path.dirname(__file__),"bbox.png")))
+            self.dockwidget.captureButton_2.setChecked(False)
+            self.dockwidget.captureButton_2.pressed.connect(self.setGetMapToolBbox)
+            self.getMapBboxTool=self.getMapBbox
+            self.getMapBboxTool.setButton(self.dockwidget.captureButton_2)  
+            self.getMapBboxTool.setDockwidget(self.dockwidget)
+            
             self.getMapCoordTool=self.getMapCoordinates
             self.getMapCoordTool.setButton(self.dockwidget.captureButton)  
             self.getMapCoordTool.setDockwidget(self.dockwidget)
             self.canvas.setMapTool(self.getMapCoordTool)
+            
 

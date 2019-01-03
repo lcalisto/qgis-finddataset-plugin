@@ -64,29 +64,34 @@ class DatasetTools():
             x,y,z = transform.TransformPoint(x,y)
             trans_coords.append([x,y])
         return trans_coords
-    def CheckIntersection(self,pt,ext,vector):
+    def CheckIntersection(self,coords,ext,vector):
         ''' Check if a poin is inside an extent
     
             @type ext:     C{tuple/list}
             @param ext:    List of [[x,y],...[x,y]] extent coordinates
-            @type pt:  C{tuple/list}
-            @param pt: Point coordinates
+            @type coords:  C{QgsPointXY or QgsRectangle}
+            @param coords: Point coordinates or bbox rectangle
             @type vector:  Boolean
             @param vector: If the extent is from a vector or a raster. Raster extents are 4 coordinates and vectors are 2 coordinates
             @rtype:         Boolean
             @return:        Is inside or not, True or False
         '''
-        if vector:
-            return ext[0][0] < pt.x() < ext[1][0] and ext[0][1] < pt.y() < ext[1][1]
-        else:
-            return ext[1][0] < pt.x() < ext[3][0] and ext[1][1] < pt.y() < ext[3][1]
-        
-    def checkRaster(self, pt,fullFile,relFile):
+        if isinstance(coords,QgsPointXY):
+            if vector:
+                return ext[0][0] < coords.x() < ext[1][0] and ext[0][1] < coords.y() < ext[1][1]
+            else:
+                return ext[1][0] < coords.x() < ext[3][0] and ext[1][1] < coords.y() < ext[3][1]
+        if isinstance(coords,QgsRectangle):
+            if vector:
+                return coords.intersects(QgsRectangle(ext[0][0],ext[0][1],ext[1][0],ext[1][1]))
+            else:
+                return coords.intersects(QgsRectangle(ext[1][0],ext[1][1],ext[3][0],ext[3][1]))
+    def checkRaster(self, coords,fullFile,relFile):
         """
         This function returns the raster extent in WGS84
 
-            @type pt:  C{tuple/list}
-            @param pt: Point coordinates
+            @type coords:  C{tuple/list}
+            @param coords: Point coordinates
             @type fullFile:  string
             @param fullFile: full file path
             @type relFile:  string
@@ -108,20 +113,20 @@ class DatasetTools():
             tgt_srs.ImportFromEPSG(4326)
             wgs84_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
             #Check if point intersects this pair of coordinates (raster extents)
-            isIntersecting=self.CheckIntersection(pt,wgs84_ext,False)
+            isIntersecting=self.CheckIntersection(coords,wgs84_ext,False)
             if isIntersecting:
                 return True
             else:
                 return False
         except:
             return None
-    def checkVector(self, pt,fullFile,relFile):
+    def checkVector(self, coords,fullFile,relFile):
         """
         This function Checks all the vector layers and check if the point intersects at least one Layer
         It returns True,False or None and a tuple with the found layer names
 
-            @type pt:  C{tuple/list}
-            @param pt: Point coordinates
+            @type coords:  C{tuple/list}
+            @param coords: Point coordinates
             @type fullFile:  string
             @param fullFile: full file path
             @type relFile:  string
@@ -145,7 +150,7 @@ class DatasetTools():
                 layerExt=[[layerExtents[0],layerExtents[2]],[layerExtents[1],layerExtents[3]]]
                 wgs84_ext=self.ReprojectCoords(layerExt,src_srs,tgt_srs)
                 #Check if point intersects this pair of coordinates (vector extents)
-                isIntersecting=self.CheckIntersection(pt,wgs84_ext,True)
+                isIntersecting=self.CheckIntersection(coords,wgs84_ext,True)
                 if isIntersecting:
                     layerNames.append(layer.GetName())
             if len(layerNames)>0:
@@ -155,9 +160,9 @@ class DatasetTools():
         except:
             return None,None
 
-    def getDataset(self, pt, folder, recursive, raster,vector):
+    def getDataset(self, coords, folder, recursive, raster,vector):
         '''
-        Process raster files and return intersecting rasters
+        Process raster and vector files and return intersecting datasets
         '''
         #loop in the folder files
         #print('start the loop',folder)
@@ -195,7 +200,7 @@ class DatasetTools():
                     # check if file is a raster
                     if raster:
                         #Check if raster intersects. If we get None then it's not a geo file!
-                        isIntersecting=self.checkRaster(pt,fullFile,relFile)
+                        isIntersecting=self.checkRaster(coords,fullFile,relFile)
                         if isIntersecting:
                             intersectingRasters.append(relFile)
                             #If it's a raster fine, there is no need to check if its a vector!
@@ -203,7 +208,7 @@ class DatasetTools():
                     # check if file is a vector
                     if vector:
                         #Check if vector intersects. If we get None then it's not a geo file!
-                        isIntersecting,layerNames=self.checkVector(pt,fullFile,relFile)
+                        isIntersecting,layerNames=self.checkVector(coords,fullFile,relFile)
                         if isIntersecting:
                             intersectingVectors.append(relFile)
                             intersectingVectorLayers.append(layerNames)  
@@ -229,7 +234,7 @@ class DatasetTools():
                 # check if file is a raster
                 if raster:
                     #Check if raster intersects. If we get None then it's not a geo file!
-                    isIntersecting=self.checkRaster(pt,os.path.join(folder, filename),filename)
+                    isIntersecting=self.checkRaster(coords,os.path.join(folder, filename),filename)
                     if isIntersecting:
                         intersectingRasters.append(filename)
                         #If it's a raster fine, there is no need to check if its a vector!
@@ -240,7 +245,7 @@ class DatasetTools():
                     if os.path.isdir(os.path.join(folder, filename)):
                         continue
                     #Check if vector intersects. If we get None then it's not a geo file!
-                    isIntersecting,layerNames=self.checkVector(pt,os.path.join(folder, filename),filename)
+                    isIntersecting,layerNames=self.checkVector(coords,os.path.join(folder, filename),filename)
                     if isIntersecting:
                         intersectingVectors.append(filename)
                         intersectingVectorLayers.append(layerNames)

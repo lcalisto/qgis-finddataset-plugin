@@ -10,20 +10,20 @@ from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.core import Qgis,QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
-from qgis.gui import QgsMapToolEmitPoint
+from qgis.gui import QgsMapToolExtent
 
 
 
-class GetMapCoordinates(QgsMapToolEmitPoint):
+class GetMapBbox(QgsMapToolExtent):
     '''Class to interact with the map canvas to capture the coordinate
     when the mouse button is pressed.'''
-    def __init__(self, find_dataset, iface):
-        QgsMapToolEmitPoint.__init__(self, iface.mapCanvas())
+    def __init__(self,find_dataset, iface):
+        QgsMapToolExtent.__init__(self, iface.mapCanvas())
         self.iface = iface
         self.canvas = iface.mapCanvas()
-        self.canvasClicked.connect(self.clicked)
+        self.extentChanged.connect(self.extentChange)
         self.find_dataset=find_dataset
-        #self.pt4326=None
+        #self.bbox4326=None # This will be a QgsRectangle object
           
 
 
@@ -32,21 +32,19 @@ class GetMapCoordinates(QgsMapToolEmitPoint):
         self.canvas.setCursor(Qt.CrossCursor)
         
         
-    def clicked(self, pt, b):
-        '''Capture the coordinate when the mouse button has been released,
+    def extentChange(self, bbox):
+        '''Capture the bbox when the mouse button has been released,
         format it, and copy it to dashboard'''
         # transform the coordinate to 4326 but display it in the original crs
         canvasCRS = self.canvas.mapSettings().destinationCrs()
         epsg4326 = QgsCoordinateReferenceSystem('EPSG:4326')
         transform = QgsCoordinateTransform(canvasCRS, epsg4326, QgsProject.instance())
-        pt4326 = transform.transform(pt.x(), pt.y())
-        lat = pt4326.y()
-        lon = pt4326.x()
+        bbox4326 = transform.transformBoundingBox(bbox)
         #change dockwidget corrdinate with the original crs
-        self.dockwidget.coordinateText.setText(str("%.3f" % pt.x())+' , '+str("%.3f" % pt.y()))
+        self.dockwidget.coordinateText.setText(bbox.toString(3))
         #assign point in 4326 crs to attribute so it can be used in other classes.
-        #self.pt4326=pt4326
-        self.find_dataset.selectedCoords4326=pt4326
+        #self.bbox4326=bbox4326
+        self.find_dataset.selectedCoords4326=bbox4326
         
     def setDockwidget(self, dockwidget):
         self.dockwidget=dockwidget

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>253</width>
+    <width>276</width>
     <height>560</height>
    </rect>
   </property>
@@ -79,7 +79,7 @@
       </property>
      </widget>
     </item>
-    <item row="10" column="3">
+    <item row="11" column="3">
      <widget class="QPushButton" name="applyButton">
       <property name="text">
        <string>Apply</string>
@@ -90,16 +90,6 @@
      <widget class="QLabel" name="label_2">
       <property name="text">
        <string>Coordinate:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="1">
-     <widget class="QLineEdit" name="coordinateText">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="autoFillBackground">
-       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -127,14 +117,14 @@
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
+    <item row="12" column="1">
      <widget class="QLabel" name="label_4">
       <property name="text">
        <string>Results</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="1" colspan="3">
+    <item row="13" column="1" colspan="3">
      <widget class="QTreeWidget" name="treeWidget">
       <property name="selectionMode">
        <enum>QAbstractItemView::MultiSelection</enum>
@@ -152,43 +142,103 @@
       </column>
      </widget>
     </item>
-    <item row="9" column="3">
-     <widget class="QToolButton" name="captureButton">
-      <property name="text">
-       <string/>
-      </property>
-      <property name="iconSize">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
-      </property>
-      <property name="checked">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="14" column="3">
+    <item row="15" column="3">
      <widget class="QPushButton" name="loadButton">
       <property name="text">
        <string>Load dataset</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="3">
+    <item row="14" column="3">
      <widget class="QPushButton" name="exportButton">
       <property name="text">
        <string>Export results</string>
       </property>
      </widget>
     </item>
-    <item row="14" column="1">
+    <item row="15" column="1">
      <widget class="QToolButton" name="helpButton">
       <property name="text">
        <string>Help</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="3" rowspan="3">
+     <widget class="QFrame" name="frame_2">
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <widget class="QToolButton" name="captureButton">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>20</y>
+         <width>28</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+      <widget class="QToolButton" name="captureButton_2">
+       <property name="geometry">
+        <rect>
+         <x>40</x>
+         <y>20</y>
+         <width>28</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </widget>
+    </item>
+    <item row="9" column="1" colspan="2">
+     <widget class="QLineEdit" name="coordinateText">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::ClickFocus</enum>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="dragEnabled">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
