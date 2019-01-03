@@ -127,6 +127,9 @@ class FindDataset():
     def exportDatasets(self):
         " exports raster and vectorsfrom the selected items with their extent in a polygon geopackage"
         selectedItems=self.dockwidget.treeWidget.selectedItems()
+        if len(selectedItems)<1:
+            QMessageBox.information(None, "Warning!", "No datasets selected. Please select at least one dataset." )
+            return
         rasters=[]
         vectors=[]
         # Fill the lists with selected datasets
