@@ -147,7 +147,7 @@ class FindDataset():
                 #We need to remove 
                 vectors.append(item.text(0))
         #create layer in memory
-        vl = QgsVectorLayer("Polygon", "catalog" , "memory")
+        vl = QgsVectorLayer("Polygon?crs=EPSG:4326", "catalog" , "memory")
         QgsProject.instance().addMapLayer(vl)
         pr = vl.dataProvider()
 
