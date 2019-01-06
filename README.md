@@ -4,7 +4,7 @@
 
 ## What is **FindDataset** plugin?
 
-**FindDataset** plugin scans a directory and its subdirectories for raster and/or vector datasets that overlap the location the user specifies in QGIS map canvas. Once the datasets are identified there is the possibility to add some or all of those datasets to QGIS map canvas.
+**FindDataset** plugin scans a directory and its subdirectories for raster and/or vector datasets that overlap the location the user specifies in QGIS map canvas. The location can be provided as a point or as an area. Once the datasets are identified there is the possibility to (1) add some or all of those datasets to QGIS map canvas and (2) export the results to a new catalag layer consisting of the bounding boxes of each of the identified layers along with these attributes: *name*, *path*, *last_edited*, *fields* and *file extension*
 
 ## How to install **FindDataset**?
 
@@ -16,7 +16,18 @@ The plugin takes the coordinates of the location the user specifies in the CRS o
 
 ## How to use **FindDataset**?
 
-A usage example can be seen below:
+A usage example can be seen below.
+
+Loading datasets:
 
 ![]( find_dataset.gif)
 
+
+
+Exporting to catalog:*
+
+![]( find_dataset_catalog.gif)
+
+
+
+*the catalog layer is always created in WGS84.
