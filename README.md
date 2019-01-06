@@ -16,7 +16,11 @@ The plugin takes the coordinates of the location the user specifies in the CRS o
 
 ## How to use **FindDataset**?
 
-A usage example can be seen below:
+A usage example can be seen below.
 
+Loading datasets:
 ![]( find_dataset.gif)
+Exporting to catalog*
+![]( find_dataset_catalog.gif)
 
+*the catalog layer is always created in WGS84.
