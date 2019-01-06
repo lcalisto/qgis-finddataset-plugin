@@ -20,7 +20,6 @@ A usage example can be seen below.
 
 Loading datasets:
 
-![]( find_dataset.gif)
 
 
 
