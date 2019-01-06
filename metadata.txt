@@ -10,7 +10,7 @@
 name=Find Dataset
 qgisMinimumVersion=3.0
 description=Finds datatesets, from a specific folder(s), that intersect a location in the map
-version=1.0.0
+version=1.1.0
 author=Luis Calisto and Andre Mano
 email=luis.calisto@hotmail.com
 
